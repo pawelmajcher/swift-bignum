@@ -8,7 +8,7 @@
 import Foundation
 
 /// Swift wrapper class for BIGNUM functions in OpenSSL library
-public final class BigNum {
+public struct BigNum: ~Copyable, @unchecked Sendable {
     // ctx is an `OpaquePointer` because CBigNumBoringSSL has been imported as implementation only. Still need
     // to convert back and forth between `OpaquePointer` and `UnsafeMutablePointer<BIGNUM> though
     internal let ctx: OpaquePointer?
@@ -46,7 +46,7 @@ public final class BigNum {
     public init<D: ContiguousBytes>(bytes: D) {
         let ctx = CBigNumBoringSSL_BN_new()
         bytes.withUnsafeBytes { bytes in
-            if let p = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) {
+            if let p: UnsafePointer<UInt8> = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) {
                 CBigNumBoringSSL_BN_bin2bn(p, .init(bytes.count), ctx)
             }
         }
@@ -78,48 +78,24 @@ public final class BigNum {
     }
 
     public var dec: String {
-        return String(validatingUTF8: CBigNumBoringSSL_BN_bn2dec(self.ctx?.convert()))!
+        return String(validatingCString: CBigNumBoringSSL_BN_bn2dec(self.ctx?.convert()))!
     }
 
     public var hex: String {
-        return String(validatingUTF8: CBigNumBoringSSL_BN_bn2hex(self.ctx?.convert()))!
-    }
-}
-
-extension BigNum: CustomStringConvertible {
-    public var description: String {
-        return self.dec
-    }
-}
-
-extension BigNum: Comparable {
-    public static func == (lhs: BigNum, rhs: BigNum) -> Bool {
-        return CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) == 0
-    }
-
-    public static func < (lhs: BigNum, rhs: BigNum) -> Bool {
-        return CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) == -1
-    }
-}
-
-extension BigNum: ExpressibleByIntegerLiteral {
-    public typealias IntegerLiteralType = Int
-
-    public convenience init(integerLiteral value: Int) {
-        self.init(value)
+        return String(validatingCString: CBigNumBoringSSL_BN_bn2hex(self.ctx?.convert()))!
     }
 }
 
 // MARK: Operations
 
 extension BigNum {
-    static func operation(_ block: (_ result: BigNum) -> Int32) -> BigNum {
+    static func operation(_ block: borrowing (_ result: borrowing BigNum) -> Int32) -> BigNum {
         let result = BigNum()
         precondition(block(result) == 1)
         return result
     }
 
-    static func operationWithCtx(_ block: (BigNum, OpaquePointer?) -> Int32) -> BigNum {
+    static func operationWithCtx(_ block: borrowing (borrowing BigNum, OpaquePointer?) -> Int32) -> BigNum {
         let result = BigNum()
         let context = CBigNumBoringSSL_BN_CTX_new()
         precondition(block(result, context) == 1)
@@ -128,80 +104,92 @@ extension BigNum {
     }
 }
 
-public func + (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func + (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     return BigNum.operation {
         CBigNumBoringSSL_BN_add($0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert())
     }
 }
 
-public func - (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func - (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     return BigNum.operation {
         CBigNumBoringSSL_BN_sub($0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert())
     }
 }
 
-public func * (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func * (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     return BigNum.operationWithCtx {
         CBigNumBoringSSL_BN_mul($0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert(), $1)
     }
 }
 
 /// Returns lhs / rhs, rounded to zero.
-public func / (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func / (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     return BigNum.operationWithCtx {
         CBigNumBoringSSL_BN_div($0.ctx?.convert(), nil, lhs.ctx?.convert(), rhs.ctx?.convert(), $1)
     }
 }
 
 /// Returns lhs / rhs, rounded to zero.
-public func % (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func % (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     return BigNum.operationWithCtx {
         CBigNumBoringSSL_BN_div(nil, $0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert(), $1)
     }
 }
 
 /// right shift
-public func >> (lhs: BigNum, shift: Int32) -> BigNum {
+public func >> (lhs: borrowing BigNum, shift: Int32) -> BigNum {
     return BigNum.operation {
         CBigNumBoringSSL_BN_rshift($0.ctx?.convert(), lhs.ctx?.convert(), shift)
     }
 }
 
 /// left shift
-public func << (lhs: BigNum, shift: Int32) -> BigNum {
-    return BigNum.operation {
+public func << (lhs: borrowing BigNum, shift: Int32) -> BigNum {
+    BigNum.operation {
         CBigNumBoringSSL_BN_lshift($0.ctx?.convert(), lhs.ctx?.convert(), shift)
     }
+}
+
+public func == (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) == 0
+}
+
+public func < (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    return CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) < 0
+}
+
+public func > (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    return CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) > 0
 }
 
 // MARK: Member Operations
 
 public extension BigNum {
-    static func += (lhs: inout BigNum, rhs: BigNum) {
+    static func += (lhs: inout BigNum, rhs: borrowing BigNum) {
         lhs = BigNum.operation {
             CBigNumBoringSSL_BN_add($0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert())
         }
     }
 
-    static func -= (lhs: inout BigNum, rhs: BigNum) {
+    static func -= (lhs: inout BigNum, rhs: borrowing BigNum) {
         lhs = BigNum.operation {
             CBigNumBoringSSL_BN_sub($0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert())
         }
     }
 
-    static func *= (lhs: inout BigNum, rhs: BigNum) {
+    static func *= (lhs: inout BigNum, rhs: borrowing BigNum) {
         lhs = BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mul($0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert(), $1)
         }
     }
 
-    static func /= (lhs: inout BigNum, rhs: BigNum) {
+    static func /= (lhs: inout BigNum, rhs: borrowing BigNum) {
         lhs = BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_div($0.ctx?.convert(), nil, lhs.ctx?.convert(), rhs.ctx?.convert(), $1)
         }
     }
 
-    static func %= (lhs: inout BigNum, rhs: BigNum) {
+    static func %= (lhs: inout BigNum, rhs: borrowing BigNum) {
         lhs = BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_div(nil, $0.ctx?.convert(), lhs.ctx?.convert(), rhs.ctx?.convert(), $1)
         }
@@ -215,49 +203,49 @@ public extension BigNum {
     }
 
     /// Returns: (self ** p)
-    func power(_ p: BigNum) -> BigNum {
+    func power(_ p: borrowing BigNum) -> BigNum {
         return BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_exp($0.ctx?.convert(), self.ctx?.convert(), p.ctx?.convert(), $1)
         }
     }
 
     /// Returns: (self + b) % N
-    func add(_ b: BigNum, modulus: BigNum) -> BigNum {
+    func add(_ b: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         return BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_add($0.ctx?.convert(), self.ctx?.convert(), b.ctx?.convert(), modulus.ctx?.convert(), $1)
         }
     }
 
     /// Returns: (a - b) % N
-    func sub(_ b: BigNum, modulus: BigNum) -> BigNum {
+    func sub(_ b: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         return BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_sub($0.ctx?.convert(), self.ctx?.convert(), b.ctx?.convert(), modulus.ctx?.convert(), $1)
         }
     }
 
     /// Returns: (a * b) % N
-    func mul(_ b: BigNum, modulus: BigNum) -> BigNum {
+    func mul(_ b: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         return BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_mul($0.ctx?.convert(), self.ctx?.convert(), b.ctx?.convert(), modulus.ctx?.convert(), $1)
         }
     }
 
     /// Returns: (a ** 2) % N
-    func sqr(modulus: BigNum) -> BigNum {
+    func sqr(modulus: borrowing BigNum) -> BigNum {
         return BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_sqr($0.ctx?.convert(), self.ctx?.convert(), modulus.ctx?.convert(), $1)
         }
     }
 
     /// Returns: (a ** p) % N
-    func power(_ p: BigNum, modulus: BigNum) -> BigNum {
+    func power(_ p: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         return BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_exp($0.ctx?.convert(), self.ctx?.convert(), p.ctx?.convert(), modulus.ctx?.convert(), $1)
         }
     }
 
     /// Return greatest common denominator
-    static func gcd(_ first: BigNum, _ second: BigNum) -> BigNum {
+    static func gcd(_ first: borrowing BigNum, _ second: borrowing BigNum) -> BigNum {
         return self.operationWithCtx {
             CBigNumBoringSSL_BN_gcd($0.ctx?.convert(), first.ctx?.convert(), second.ctx?.convert(), $1)
         }
@@ -309,21 +297,21 @@ public extension BigNum {
     }
 
     /// return cryptographically strong random number in range (0...max-1). random needs seeding prior to be called
-    static func random(max: BigNum) -> BigNum {
+    static func random(max: borrowing BigNum) -> BigNum {
         return self.operation {
             CBigNumBoringSSL_BN_rand_range($0.ctx?.convert(), max.ctx?.convert())
         }
     }
 
     /// return pseudo random number in range (0..<max)
-    static func psuedo_random(max: BigNum) -> BigNum {
+    static func psuedo_random(max: borrowing BigNum) -> BigNum {
         return self.operation {
             CBigNumBoringSSL_BN_pseudo_rand_range($0.ctx?.convert(), max.ctx?.convert())
         }
     }
 
     /// prime number generator
-    static func generatePrime(bitSize: Int32, safe: Bool, add: BigNum? = nil, remainder: BigNum? = nil) -> BigNum {
+    static func generatePrime(bitSize: Int32, safe: Bool, add: consuming BigNum? = nil, remainder: consuming BigNum? = nil) -> BigNum {
         return self.operation {
             CBigNumBoringSSL_BN_generate_prime_ex($0.ctx?.convert(), bitSize, safe ? 1 : 0, add?.ctx?.convert(), remainder?.ctx?.convert(), nil)
         }
@@ -340,7 +328,7 @@ public extension BigNum {
 }
 
 /// extensions taken from swift-nio
-extension OpaquePointer {
+fileprivate extension OpaquePointer {
     func convert<T>() -> UnsafeMutablePointer<T> {
         return .init(self)
     }
@@ -350,12 +338,8 @@ extension OpaquePointer {
     }
 }
 
-extension UnsafeMutablePointer {
+fileprivate extension UnsafeMutablePointer {
     func convert() -> OpaquePointer {
         return .init(self)
     }
 }
-
-#if swift(>=5.6)
-extension BigNum: @unchecked Sendable {}
-#endif

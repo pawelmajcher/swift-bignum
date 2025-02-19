@@ -1,11 +1,11 @@
 import XCTest
 @testable import BigNum
 
-final class BigNumTests: XCTestCase {
+final class BigNumTests: XCTestCase, @unchecked Sendable {
     
     func testConversion() {
-        XCTAssertEqual(BigNum(14887387467384), BigNum("14887387467384"))
-        XCTAssertEqual(BigNum("92"), BigNum(hex:"5c"))
+        XCTAssertTrue(BigNum(14887387467384) == BigNum("14887387467384")!)
+        XCTAssertTrue(BigNum("92")! == BigNum(hex:"5c")!)
     }
     
     func testDataConversion() {
@@ -14,82 +14,82 @@ final class BigNumTests: XCTestCase {
         let bytes = number.bytes
         let hex = number.hex
         let dec = number.dec
-        XCTAssertEqual(BigNum(14887387467384), BigNum("14887387467384"))
-        XCTAssertEqual(BigNum("92"), BigNum(hex:"5c"))
-        XCTAssertEqual(BigNum(bytes: data), number)
-        XCTAssertEqual(BigNum(bytes: bytes), number)
-        XCTAssertEqual(BigNum(hex: hex), number)
-        XCTAssertEqual(BigNum(dec), number)
+        XCTAssertTrue(BigNum(14887387467384) == BigNum("14887387467384")!)
+        XCTAssertTrue(BigNum("92")! == BigNum(hex:"5c")!)
+        XCTAssertTrue(BigNum(bytes: data) == number)
+        XCTAssertTrue(BigNum(bytes: bytes) == number)
+        XCTAssertTrue(BigNum(hex: hex)! == number)
+        XCTAssertTrue(BigNum(dec)! == number)
     }
     
     func testBasic() {
         let a = BigNum(13)
         let b = BigNum(105)
         let c = a + b
-        XCTAssertEqual(c, 118)
+        XCTAssertTrue(c.dec == "118")
     }
 
     func testAdd() {
         var a = BigNum(132435353453)
         let b = BigNum(23453532535)
         let c = a + b
-        XCTAssertEqual(c, BigNum(132435353453+23453532535))
+        XCTAssertTrue(c == BigNum(132435353453+23453532535))
 
         a += b
-        XCTAssertEqual(c, a)
+        XCTAssertTrue(c == a)
     }
 
     func testSubtract() {
         var a = BigNum(132435987897453)
         let b = BigNum(23453532535)
         let c = a - b
-        XCTAssertEqual(c, BigNum(132435987897453-23453532535))
+        XCTAssertTrue(c == BigNum(132435987897453-23453532535))
         
         a -= b
-        XCTAssertEqual(c, a)
+        XCTAssertTrue(c == a)
     }
 
     func testMultiple() {
         var a = BigNum(45)
         let b = BigNum(23453532535)
         let c = a * b
-        XCTAssertEqual(c, BigNum(45*23453532535))
+        XCTAssertTrue(c == BigNum(45*23453532535))
         
         a *= b
-        XCTAssertEqual(c, a)
+        XCTAssertTrue(c == a)
     }
 
     func testDivide() {
         var a = BigNum(487380435867034585)
         let b = BigNum(23453532535)
         let c = a / b
-        XCTAssertEqual(c, BigNum(487380435867034585 / 23453532535))
+        XCTAssertTrue(c == BigNum(487380435867034585 / 23453532535))
         
         a /= b
-        XCTAssertEqual(c, a)
+        XCTAssertTrue(c == a)
     }
 
     func testModulus() {
         var a = BigNum(487380435867034585)
         let b = BigNum(23453532535)
         let c = a % b
-        XCTAssertEqual(c, BigNum(487380435867034585 % 23453532535))
+        XCTAssertTrue(c == BigNum(487380435867034585 % 23453532535))
         
         a %= b
-        XCTAssertEqual(c, a)
+        XCTAssertTrue(c == a)
     }
     
     func testSquare() {
         let a = BigNum(487034585)
         let c = a * a
-        XCTAssertEqual(c, BigNum(487034585 * 487034585))
+        XCTAssertTrue(c == BigNum(487034585 * 487034585))
     }
 
     func testPower() {
         let a = BigNum(45)
         let b = BigNum(6)
-        let c = a.power(b)
-        XCTAssertEqual(c, BigNum(Int(pow(Double(45),Double(6)))))
+        let c: BigNum = a.power(b)
+        XCTAssertTrue(c == BigNum(Int(pow(Double(45),Double(6)))))
     }
 
     func testModAdd() {
@@ -97,7 +97,7 @@ final class BigNumTests: XCTestCase {
         let a = BigNum(28868624873)
         let b = BigNum(28333868624873)
         let c = a.add(b, modulus: N)
-        XCTAssertEqual(c, BigNum((28868624873 + 28333868624873) % 87178291199))
+        XCTAssertTrue(c == BigNum((28868624873 + 28333868624873) % 87178291199))
     }
     
     func testModSubtract() {
@@ -105,7 +105,7 @@ final class BigNumTests: XCTestCase {
         let a = BigNum(28333868624873)
         let b = BigNum(28868624873)
         let c = a.sub(b, modulus: N)
-        XCTAssertEqual(c, BigNum((28333868624873 - 28868624873) % 87178291199))
+        XCTAssertTrue(c == BigNum((28333868624873 - 28868624873) % 87178291199))
     }
     
     func testModMultiple() {
@@ -113,14 +113,14 @@ final class BigNumTests: XCTestCase {
         let a = BigNum(67)
         let b = BigNum(28876783243)
         let c = a.mul(b, modulus: N)
-        XCTAssertEqual(c, BigNum((67 * 28876783243) % 87178291199))
+        XCTAssertTrue(c == BigNum((67 * 28876783243) % 87178291199))
     }
     
     func testModSquare() {
         let N = BigNum(2971215073)
         let a = BigNum(67647)
         let c = a.sqr(modulus:N)
-        XCTAssertEqual(c, BigNum((67647 * 67647) % 2971215073))
+        XCTAssertTrue(c == BigNum((67647 * 67647) % 2971215073))
     }
     
     func testModPower() {
@@ -128,7 +128,7 @@ final class BigNumTests: XCTestCase {
         let a = BigNum(67)
         let b = BigNum(7)
         let c = a.power(b, modulus: N)
-        XCTAssertEqual(c, BigNum(Int(pow(Double(67),Double(7))) % 433494437))
+        XCTAssertTrue(c == BigNum(Int(pow(Double(67),Double(7))) % 433494437))
     }
     
     func testLargeModPower() {
@@ -174,31 +174,31 @@ final class BigNumTests: XCTestCase {
         )!
         let g = BigNum(2)
         let A = g.power(a, modulus: N)
-        XCTAssertEqual(A, expectedResult)
+        XCTAssertTrue(A == expectedResult)
     }
     
     func testGCD() {
         let a = BigNum(333)
         let b = BigNum(27)
         let gcd = BigNum.gcd(a,b)
-        XCTAssertEqual(gcd, BigNum(9))
+        XCTAssertTrue(gcd == BigNum(9))
     }
     
     func testLeftShift() {
         let a = BigNum(hex: "87237634a5fed7")!
         let b = a << 4
-        XCTAssertEqual(b, BigNum(hex: "87237634a5fed70")!)
+        XCTAssertTrue(b == BigNum(hex: "87237634a5fed70")!)
     }
     
     func testRightShift() {
         let a = BigNum(hex: "87237634aed78dc90a5fed7")!
         let b = a >> 12
-        XCTAssertEqual(b, BigNum(hex: "87237634aed78dc90a5f")!)
+        XCTAssertTrue(b == BigNum(hex: "87237634aed78dc90a5f")!)
     }
     
     func testNotHex() {
         let a = BigNum(hex: "sdf876sjhk")
-        XCTAssertNil(a)
+        XCTAssertTrue(a == nil)
     }
     
     func testRandom() {
@@ -217,9 +217,9 @@ final class BigNumTests: XCTestCase {
         for i in 1..<1000 {
             factorial = factorial * BigNum(i)
         }
-        print(factorial)
+        print(factorial.dec)
         for i in 1..<1000 {
-            XCTAssertEqual(BigNum.gcd(BigNum(i), factorial), BigNum(i))
+            XCTAssertTrue(BigNum.gcd(BigNum(i), factorial) == BigNum(i))
         }
     }
     
@@ -257,7 +257,8 @@ final class BigNumTests: XCTestCase {
         }
     }
     
-    static var allTests = [
+    /*static var allTests = {
+       return [
         ("testConversion", testConversion),
         ("testBasic", testBasic),
         ("testAdd", testAdd),
@@ -280,5 +281,6 @@ final class BigNumTests: XCTestCase {
         ("testRandom", testRandom),
         ("testPrime", testPrime),
         ("testFactorial", testFactorial),
-    ]
+       ]
+    }*/
 }
