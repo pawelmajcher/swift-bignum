@@ -1,4 +1,4 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -15,18 +15,10 @@ let privacyManifestExclude: [String] = ["PrivacyInfo.xcprivacy"]
 let privacyManifestResource: [PackageDescription.Resource] = []
 #endif
 
-// For Swift prior to 6.0 enable noncopyable and strict concurrency features
-#if swift(>=6.0)
+// Enable Cpp interoperability mode
 let buildSettings: [PackageDescription.SwiftSetting] = [
     .interoperabilityMode(.Cxx),
 ]
-#else
-let buildSettings: [PackageDescription.SwiftSetting] = [
-    .enableExperimentalFeature("StrictConcurrency"),
-    .enableExperimentalFeature("MoveOnly"),
-    .interoperabilityMode(.Cxx),
-]
-#endif
 
 let package = Package(
     name: "swift-bignum",
