@@ -154,6 +154,10 @@ public func == (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
     CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) == 0
 }
 
+public func != (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) != 0
+}
+
 public func < (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
     return CBigNumBoringSSL_BN_cmp(lhs.ctx?.convert(), rhs.ctx?.convert()) < 0
 }
