@@ -15,11 +15,6 @@ let privacyManifestExclude: [String] = ["PrivacyInfo.xcprivacy"]
 let privacyManifestResource: [PackageDescription.Resource] = []
 #endif
 
-// Enable Cpp interoperability mode
-let buildSettings: [PackageDescription.SwiftSetting] = [
-    .interoperabilityMode(.Cxx),
-]
-
 let package = Package(
     name: "swift-bignum",
     products: [
@@ -33,8 +28,7 @@ let package = Package(
     targets: [
         .target(
             name: "BigNum",
-            dependencies: ["CBigNumBoringSSL"],
-            swiftSettings: buildSettings
+            dependencies: ["CBigNumBoringSSL"]
         ),
         .target(
             name: "CBigNumBoringSSL",
@@ -66,7 +60,7 @@ let package = Package(
                 .define("BORINGSSL_IMPLEMENTATION"),
             ]
         ),
-        .testTarget(name: "BigNumTests", dependencies: ["BigNum"], swiftSettings: buildSettings),
+        .testTarget(name: "BigNumTests", dependencies: ["BigNum"]),
     ],
     cxxLanguageStandard: .cxx17
 )
