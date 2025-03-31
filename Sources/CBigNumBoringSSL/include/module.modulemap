@@ -1,4 +1,4 @@
-module CBigNumBoringSSL {
-    header "CBigNumBoringSSL.h"
+module CBigNumBoringSSL [extern_c] {
+    umbrella header "CBigNumBoringSSL.h"
     export *
 }
