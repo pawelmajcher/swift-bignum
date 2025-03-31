@@ -23,6 +23,7 @@ let package = Package(
         /* This target is used only for symbol mangling. It's added and removed automatically because it emits build warnings. MANGLE_START
             .library(name: "CBigNumBoringSSL", type: .static, targets: ["CBigNumBoringSSL"]),
         MANGLE_END */
+        .library(name: "CBigNum", targets: ["CBigNumBoringSSL"]) // Expose C interface for other libraries
     ],
     dependencies: [],
     targets: [
